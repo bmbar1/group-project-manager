@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Project Manager</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --todo-color: #e74c3c;
+            --progress-color: #f39c12;
+            --done-color: #2ecc71;
+            --primary-btn: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        /* Presentation Timer Bar */
+        .timer-container {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .timer-btn {
+            background-color: var(--done-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .timer-display {
+            font-size: 1.2rem;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        /* Task Form */
+        .task-form {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 500px;
+            margin: 0 auto 30px auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .task-form input {
+            flex: 1;
+            min-width: 150px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .task-form button {
+            background-color: var(--primary-btn);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .task-form button:hover {
+            background-color: #2980b9;
+        }
+
+        /* Board Layout */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .column {
+            background: #eef2f5;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .column-header {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 3px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .todo-header { border-color: var(--todo-color); color: var(--todo-color); }
+        .progress-header { border-color: var(--progress-color); color: var(--progress-color); }
+        .done-header { border-color: var(--done-color); color: var(--done-color); }
+
+        .count-badge {
+            background: #ddd;
+            color: #333;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.8rem;
+        }
+
+        .task-list {
+            min-height: 200px;
+        }
+
+        /* Task Cards */
+        .task-card {
+            background: var(--card-bg);
+            border-left: 5px solid #ccc;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .task-todo { border-left-color: var(--todo-color); }
+        .task-progress { border-left-color: var(--progress-color); }
+        .task-done { border-left-color: var(--done-color); }
+
+        .task-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .task-assignee {
+            font-size: 0.9rem;
+            color: #666;
+            margin: 0;
+        }
+
+        .task-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+
+        .action-btn {
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-move { background-color: #e0e0e0; color: #333; }
+        .btn-move:hover { background-color: #d0d0d0; }
+        .btn-delete { background-color: #fadbd8; color: #c0392b; }
+        .btn-delete:hover { background-color: #f5b7b1; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Group Project Board</h1>
+        <p>Keep track of tasks, assignees, and progress live.</p>
+        
+        <div class="timer-container">
+            <span>⏱️ Presentation Mode:</span>
+            <button class="timer-btn" id="timerBtn" onclick="toggleTimer()">Start 8m Timer</button>
+            <div class="timer-display" id="timerDisplay">08:00</div>
+        </div>
+    </header>
+
+    <div class="task-form">
+        <input type="text" id="taskTitle" placeholder="Task description (e.g., Design Slides)" required>
+        <input type="text" id="taskAssignee" placeholder="Assignee name (e.g., Alex)" required>
+        <button onclick="createNewTask()">Add Task</button>
+    </div>
+
+    <div class="board">
+        <div class="column">
+            <div class="column-header todo-header">
+                To Do <span class="count-badge" id="todo-count">0</span>
+            </div>
+            <div class="task-list" id="todo-list"></div>
+        </div>
+
+        <div class="column">
+            <div class="column-header progress-header">
+                In Progress <span class="count-badge" id="progress-count">0</span>
+            </div>
+            <div class="task-list" id="progress-list"></div>
+        </div>
+
+        <div class="column">
+            <div class="column-header done-header">
+                Done <span class="count-badge" id="done-count">0</span>
+            </div>
+            <div class="task-list" id="done-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Core Data Structure
+        let tasks = JSON.parse(localStorage.getItem('kanban-tasks')) || [];
+
+        // App Initialization
+        function initApp() {
+            renderTasks();
+        }
+
+        // Create New Task
+        function createNewTask() {
+            const titleInput = document.getElementById('taskTitle');
+            const assigneeInput = document.getElementById('taskAssignee');
+
+            if (!titleInput.value.trim() || !assigneeInput.value.trim()) {
+                alert('Please enter both a task and an assignee!');
+                return;
+            }
+
+            const newTask = {
+                id: Date.now(),
+                title: titleInput.value.trim(),
+                assignee: assigneeInput.value.trim(),
+                status: 'todo'
+            };
+
+            tasks.push(newTask);
+            saveData();
+            renderTasks();
+
+            // Clear inputs
+            titleInput.value = '';
+            assigneeInput.value = '';
+        }
+
+        // Move Task to Next Status
+        function moveTask(id, currentStatus) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            if (currentStatus === 'todo') {
+                task.status = 'progress';
+            } else if (currentStatus === 'progress') {
+                task.status = 'done';
+            }
+            
+            saveData();
+            renderTasks();
+        }
+
+        // Delete Task
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveData();
+            renderTasks();
+        }
+
+        // Save to LocalStorage
+        function saveData() {
+            localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
+        }
+
+        // Render DOM Elements
+        function renderTasks() {
+            const todoList = document.getElementById('todo-list');
+            const progressList = document.getElementById('progress-list');
+            const doneList = document.getElementById('done-list');
+
+            // Reset UI lists
+            todoList.innerHTML = '';
+            progressList.innerHTML = '';
+            doneList.innerHTML = '';
+
+            let counts = { todo: 0, progress: 0, done: 0 };
+
+            tasks.forEach(task => {
+                counts[task.status]++;
+                
+                const card = document.createElement('div');
+                card.className = `task-card task-${task.status}`;
+                
+                card.innerHTML = `
+                    <p class="task-title">${escapeHTML(task.title)}</p>
+                    <p class="task-assignee">👤 Assigned to: <strong>${escapeHTML(task.assignee)}</strong></p>
+                    <div class="task-actions">
+                        ${task.status !== 'done' ? `<button class="action-btn btn-move" onclick="moveTask(${task.id}, '${task.status}')">➡️ Move</button>` : ''}
+                        <button class="action-btn btn-delete" onclick="deleteTask(${task.id})">🗑️ Delete</button>
+                    </div>
+                `;
+
+                if (task.status === 'todo') todoList.appendChild(card);
+                if (task.status === 'progress') progressList.appendChild(card);
+                if (task.status === 'done') doneList.appendChild(card);
+            });
+
+            // Update Header Counts
+            document.getElementById('todo-count').textContent = counts.todo;
+            document.getElementById('progress-count').textContent = counts.progress;
+            document.getElementById('done-count').textContent = counts.done;
+        }
+
+        // Helper to prevent script injection strings
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // --- Presentation Timer Logic ---
+        let timerInterval = null;
+        let totalSeconds = 8 * 60; // 8 minutes exact
+        let timerRunning = false;
+
+        function toggleTimer() {
+            const btn = document.getElementById('timerBtn');
+            
+            if (timerRunning) {
+                clearInterval(timerInterval);
+                btn.textContent = 'Resume Timer';
+                btn.style.backgroundColor = 'var(--progress-color)';
+                timerRunning = false;
+            } else {
+                timerRunning = true;
+                btn.textContent = 'Pause';
+                btn.style.backgroundColor = 'var(--todo-color)';
+                
+                timerInterval = setInterval(() => {
+                    if (totalSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        document.getElementById('timerDisplay').textContent = "Time's Up!";
+                        btn.textContent = 'Finished';
+                        btn.disabled = true;
+                        return;
+                    }
+                    totalSeconds--;
+                    const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+                    const secs = (totalSeconds % 60).toString().padStart(2, '0');
+                    document.getElementById('timerDisplay').textContent = `${mins}:${secs}`;
+                }, 1000);
+            }
+        }
+
+        // Run app on load
+        window.onload = initApp;
+    </script>
+</body>
+</html>
